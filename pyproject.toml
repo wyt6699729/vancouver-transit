@@ -22,6 +22,7 @@ dev = [
 
 [project.scripts]
 main = "vancouver_transit.main:main"
+gtfs-download = "vancouver_transit.gtfs_download:main"
 
 [build-system]
 requires = ["hatchling"]

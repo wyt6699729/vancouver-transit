@@ -18,6 +18,8 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  gtfs_bronze_schema:
+    description: Schema for the GTFS bronze layer
 
 targets:
   dev:
@@ -30,8 +32,9 @@ targets:
     workspace:
       host: https://8259563809696779.9.gcp.databricks.com
     variables:
-      catalog: transit
+      catalog: gtfs
       schema: dev
+      gtfs_bronze_schema: bronze
   prod:
     mode: production
     workspace:
@@ -39,8 +42,9 @@ targets:
       # We explicitly deploy to /Workspace/Users/wangyitian91@gmail.com to make sure we only have a single copy.
       root_path: /Workspace/Users/wangyitian91@gmail.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: transit
+      catalog: gtfs
       schema: prod
+      gtfs_bronze_schema: bronze
     permissions:
       - user_name: wangyitian91@gmail.com
         level: CAN_MANAGE
