@@ -1,0 +1,49 @@
+# Daily ingestion of raw GTFS Static data into the bronze layer.
+# TransLink republishes most weeks (typically by Friday) but can change more often, so
+# this polls daily. The download is content-addressed: when the archive is unchanged the
+# extract is skipped, no new files reach the volume, and the pipeline is a no-op.
+
+resources:
+  jobs:
+    gtfs_ingest:
+      name: gtfs_ingest
+
+      schedule:
+        # 06:00 America/Vancouver, daily. TransLink publishes overnight.
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: America/Vancouver
+
+      #email_notifications:
+      #  on_failure:
+      #    - your_email@example.com
+
+      tasks:
+        # Download the public GTFS Static ZIP and land the unzipped files in the
+        # volume. No-ops when TransLink has not republished since the last run.
+        - task_key: download_gtfs_static
+          python_wheel_task:
+            package_name: vancouver_transit
+            entry_point: gtfs-download
+            parameters:
+              - "--volume-root"
+              - "/Volumes/${var.catalog}/${var.gtfs_bronze_schema}/landing/gtfs_static"
+          # BLOCKED until serverless egress is enabled for gtfs-static.translink.ca.
+          # This workspace is serverless-only ("Only serverless compute is supported"),
+          # and serverless has no outbound internet, so the download fails with
+          # "Temporary failure in name resolution". An account admin must add the host
+          # to the serverless network policy. Until then, stage the files into the
+          # volume externally - see src/gtfs_bronze/README.md.
+          environment_key: default
+
+        - task_key: refresh_bronze
+          depends_on:
+            - task_key: download_gtfs_static
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.gtfs_bronze_ingest.id}
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

@@ -1,0 +1,23 @@
+# Bronze ingestion of the TransLink GTFS Static feed via Auto Loader.
+# Source files are landed in a UC volume by the gtfs_ingest job's download task.
+
+resources:
+  pipelines:
+    gtfs_bronze_ingest:
+      name: gtfs_bronze_ingest
+      catalog: ${var.catalog}
+      schema: ${var.gtfs_bronze_schema}
+      serverless: true
+      continuous: false
+      root_path: "../src/gtfs_bronze"
+
+      # Passed to the transformation code as spark.conf, so the landing path follows
+      # the target's catalog/schema instead of being hardcoded in Python.
+      # Must stay in sync with the volume in resources/gtfs_landing.volume.yml -
+      # ${resources.volumes...} references are not interpolated here.
+      configuration:
+        gtfs.volume_root: /Volumes/${var.catalog}/${var.gtfs_bronze_schema}/landing/gtfs_static
+
+      libraries:
+        - glob:
+            include: ../src/gtfs_bronze/transformations/**
