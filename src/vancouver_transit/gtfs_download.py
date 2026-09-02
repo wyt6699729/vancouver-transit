@@ -24,7 +24,9 @@ import zipfile
 from datetime import datetime, timezone
 
 GTFS_STATIC_URL = "https://gtfs-static.translink.ca/gtfs/google_transit.zip"
-DEFAULT_VOLUME_ROOT = "/Volumes/gtfs/bronze/landing/gtfs_static"
+# Fallback for manual/local runs only. The job always passes --volume-root,
+# built from the bundle target's catalog and schema_prefix.
+DEFAULT_VOLUME_ROOT = "/Volumes/gtfs_dev/transit_bronze/landing/gtfs_static"
 
 # UTF-8 BOM. A few TransLink files carry one, which would otherwise end up glued
 # to the first column name in the parsed header.

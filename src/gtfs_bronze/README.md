@@ -1,41 +1,43 @@
 # GTFS Static — bronze ingestion
 
 Ingests the [TransLink GTFS Static feed](https://www.translink.ca/about-us/doing-business-with-translink/app-developer-resources/gtfs/gtfs-data)
-into `gtfs.bronze` via Auto Loader.
+into `gtfs_dev.transit_bronze` via Auto Loader.
 
 ## Shape
 
 ```
-gtfs_ingest (job, weekly)
+gtfs_ingest (job, daily 06:00 America/Vancouver)
 ├── download_gtfs_static   vancouver_transit.gtfs_download:main
 │     GET https://gtfs-static.translink.ca/gtfs/google_transit.zip
-│     └── /Volumes/gtfs/bronze/landing/gtfs_static/<entity>/snapshot_id=<ts>/<entity>.txt
+│     └── /Volumes/gtfs_dev/transit_bronze/landing/gtfs_static/<entity>/snapshot_id=<ts>/<entity>.txt
 └── refresh_bronze         pipeline gtfs_bronze_ingest
-      Auto Loader (csv) → gtfs.bronze.<entity>   (15 streaming tables)
+      Auto Loader (csv) → gtfs_dev.transit_bronze.<entity>   (15 streaming tables)
 ```
 
-## ⚠️ The download task is blocked in this workspace
+## Egress: works in slalom-sandbox, was blocked in the old workspace
 
-`download_gtfs_static` fails with `URLError: [Errno -3] Temporary failure in name
-resolution`. Two workspace facts combine to cause this:
+Verified end to end on 2026-09-01 against
+`https://dbc-817e0bdc-6c87.cloud.databricks.com` (profile `slalom-sandbox`):
+the job succeeded in 92s, landed 15 files, and built all 15 streaming tables
+(5,428,459 rows in `stop_times`). Serverless egress to
+`gtfs-static.translink.ca` is permitted there — no network-policy change needed.
 
-- the workspace is **serverless-only** — adding a `new_cluster` to the task is rejected
-  with `Only serverless compute is supported in the workspace`;
-- **serverless compute has no outbound internet**, so it cannot reach
-  `gtfs-static.translink.ca`.
+This is workspace-specific, so it is worth knowing what failure looks like. In the
+previous GCP workspace `download_gtfs_static` failed with `URLError: [Errno -3]
+Temporary failure in name resolution`, because that workspace was serverless-only
+(`new_cluster` rejected with "Only serverless compute is supported") and its
+serverless compute had no outbound internet. The fix there is an account-admin
+action: add `gtfs-static.translink.ca` to the serverless network policy's allowed
+domains. No code change is needed either way.
 
-The fix is an account-admin action: add `gtfs-static.translink.ca` to the serverless
-network policy's allowed domains. Once that is done the job runs end to end with no code
-change.
-
-**Until then**, stage the files from outside Databricks. This produces exactly the layout
-Auto Loader expects:
+If you hit that error in a new workspace, you can stage the files from outside
+Databricks in the meantime. This produces exactly the layout Auto Loader expects:
 
 ```bash
 python -c "from vancouver_transit.gtfs_download import download_gtfs_static; \
            download_gtfs_static(volume_root='/tmp/stage/gtfs_static')"
 databricks fs cp -r --overwrite /tmp/stage/gtfs_static \
-    dbfs:/Volumes/gtfs/bronze/landing/gtfs_static --profile <your-profile>
+    dbfs:/Volumes/gtfs_dev/transit_bronze/landing/gtfs_static --profile <your-profile>
 databricks bundle run gtfs_bronze_ingest -t dev --profile <your-profile>
 ```
 
