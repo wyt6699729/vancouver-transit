@@ -9,6 +9,6 @@ resources:
   volumes:
     gtfs_landing:
       catalog_name: ${var.catalog}
-      schema_name: ${var.gtfs_bronze_schema}
+      schema_name: ${var.schema_prefix}_bronze
       name: landing
       volume_type: MANAGED

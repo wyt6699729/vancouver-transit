@@ -26,8 +26,14 @@ Every file generated must follow these standards exactly. No exceptions.
 
 ```
 Catalogs (ONLY these two — never more):
-    dev   ← development and testing
-    prod  ← production only
+    gtfs_dev    ← development and testing
+    gtfs_prod   ← production only
+
+The project prefix is required: this is a SHARED Slalom metastore with 30+
+catalogs, and bare `dev` / `prod` would be ambiguous about ownership and
+would collide with other teams. Project-prefixed environment catalogs are
+the established local convention (mlops_dbx_talk_dev, clinical_agents_dev,
+hl_prod). Environment still lives in the CATALOG, never below it.
 
 Schema naming: {domain}_{layer}
     transit_bronze   ← raw ingestion
@@ -37,15 +43,19 @@ Schema naming: {domain}_{layer}
 Full path pattern: {catalog}.{domain}_{layer}.{table}
 
 Tables:
-    dev.transit_bronze.bus_positions          ← raw GTFS-RT positions
-    dev.transit_silver.bus_sensor_readings    ← typed, enriched
-    dev.transit_silver.bus_sensor_anomalies   ← detected anomalies
-    dev.transit_gold.route_performance        ← route-level metrics
-    dev.transit_gold.fleet_health_score       ← vehicle-level health
+    gtfs_dev.transit_bronze.bus_positions        ← raw GTFS-RT positions
+    gtfs_dev.transit_silver.bus_sensor_readings  ← typed, enriched
+    gtfs_dev.transit_silver.bus_sensor_anomalies ← detected anomalies
+    gtfs_dev.transit_gold.route_performance      ← route-level metrics
+    gtfs_dev.transit_gold.fleet_health_score     ← vehicle-level health
+
+The GTFS Static reference feed shares this design; it lands as
+gtfs_dev.transit_bronze.<entity> (agency, routes, trips, stops, ...) from
+the gtfs_ingest job and gtfs_bronze_ingest pipeline.
 
 NEVER: encode environment in schema or table names
 WRONG: transit_bronze_dev, bus_positions_prod
-RIGHT: dev.transit_bronze.bus_positions
+RIGHT: gtfs_dev.transit_bronze.bus_positions
 ```
 
 ---
@@ -391,7 +401,7 @@ bundle:
 
 variables:
   catalog:
-    default: dev
+    default: gtfs_dev
   schema_prefix:
     default: transit
 
@@ -400,11 +410,15 @@ targets:
     mode: development
     default: true
     workspace:
-      host: ${DATABRICKS_HOST}
+      host: https://dbc-817e0bdc-6c87.cloud.databricks.com
+    variables:
+      catalog: gtfs_dev
   prod:
     mode: production
     workspace:
-      host: ${DATABRICKS_HOST}
+      host: https://dbc-817e0bdc-6c87.cloud.databricks.com
+    variables:
+      catalog: gtfs_prod
 
 resources:
   pipelines:

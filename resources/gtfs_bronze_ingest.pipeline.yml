@@ -6,7 +6,7 @@ resources:
     gtfs_bronze_ingest:
       name: gtfs_bronze_ingest
       catalog: ${var.catalog}
-      schema: ${var.gtfs_bronze_schema}
+      schema: ${var.schema_prefix}_bronze
       serverless: true
       continuous: false
       root_path: "../src/gtfs_bronze"
@@ -16,7 +16,7 @@ resources:
       # Must stay in sync with the volume in resources/gtfs_landing.volume.yml -
       # ${resources.volumes...} references are not interpolated here.
       configuration:
-        gtfs.volume_root: /Volumes/${var.catalog}/${var.gtfs_bronze_schema}/landing/gtfs_static
+        gtfs.volume_root: /Volumes/${var.catalog}/${var.schema_prefix}_bronze/landing/gtfs_static
 
       libraries:
         - glob:
