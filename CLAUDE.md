@@ -162,7 +162,9 @@ Config Tables make the query optimizer blind:
 ## LAKEFLOW PIPELINE STANDARD
 
 ```python
-import dlt as dp
+# Lakeflow Spark Declarative Pipelines. Use this import, never `import dlt as dp` —
+# the `dlt` module is the legacy DLT API and is not what this project targets.
+from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
 
