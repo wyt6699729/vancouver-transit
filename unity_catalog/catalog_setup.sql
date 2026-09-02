@@ -1,0 +1,15 @@
+-- Lab 7: Unity Catalog design for the Vancouver Transit Intelligence Platform.
+--
+-- Exactly two catalogs, dev and prod. Schemas follow {domain}_{layer}.
+-- Environment is encoded in the catalog, never in the schema or table name.
+--
+--     dev.transit_bronze.bus_positions
+--     dev.transit_silver.bus_sensor_readings
+--     dev.transit_silver.bus_sensor_anomalies
+--     dev.transit_gold.route_performance
+--     dev.transit_gold.fleet_health_score
+--
+-- Owner: Etienne Wang (etienne.wang@slalom.com)
+-- Updated: 2026-09-01
+
+-- TODO (Lab 7): CREATE CATALOG / CREATE SCHEMA statements and grants.

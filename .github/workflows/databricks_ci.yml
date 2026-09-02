@@ -1,0 +1,15 @@
+# Lab 8: CI/CD pipeline. All deployments via DABs — no click-ops ever.
+name: databricks_ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO (Lab 8): install the Databricks CLI, run `databricks bundle validate`,
+      # run pytest over tests/, then deploy on merge to main.
