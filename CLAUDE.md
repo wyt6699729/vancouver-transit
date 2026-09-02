@@ -110,8 +110,9 @@ No spark.read, no .write, no side effects inside transform functions.
 Testable in isolation. Platform-agnostic. Reusable across projects.
 
 ### 3. Mandatory Data Quality as Code
-Every table must have @dp.expect checks. No exceptions.
+Every table must have @dp.expect* checks. No exceptions.
 DQ rules are code, not documentation.
+Severity is expressed by WHICH decorator you use, never by an argument.
 
 ### 4. Self-Documenting Systems
 Code IS the documentation. A new engineer must understand the
@@ -147,8 +148,9 @@ Config Tables make the query optimizer blind:
 #   2. {column} → DERIVED: {formula}
 #
 # Data Quality Rules:
-#   CRITICAL: {rule}  ← pipeline stops on failure
-#   WARN:     {rule}  ← logs and continues
+#   FAIL: {name} — {condition}  ← @dp.expect_or_fail, pipeline stops
+#   DROP: {name} — {condition}  ← @dp.expect_or_drop, row dropped
+#   WARN: {name} — {condition}  ← @dp.expect, logged, row kept
 #
 # PII columns:  {list or None}
 # SLA:          Within {N} minutes of upstream load
@@ -178,12 +180,18 @@ from pyspark.sql.types import *
         "owner":   "etienne.wang@slalom.com",
         "source":  "TransLink GTFS-RT API"
     },
-    partition_by=["_ingest_date"]
+    cluster_by=["_ingest_date"]
 )
-@dp.expect("vehicle_id is not null",              "critical")
-@dp.expect("timestamp is not null",               "critical")
-@dp.expect("latitude >= 48.0 and latitude <= 56.0","warn")
-@dp.expect("longitude >= -140.0 and longitude <= -114.0", "warn")
+# expect*(name, condition): `name` is the metric label, `condition` is a SQL
+# boolean. Severity is the decorator you pick, never an argument.
+@dp.expect_all_or_fail({
+    "vehicle_id_not_null": "vehicle_id IS NOT NULL",
+    "timestamp_not_null":  "timestamp IS NOT NULL"
+})
+@dp.expect_all({
+    "latitude_in_bc":  "latitude BETWEEN 48.0 AND 56.0",
+    "longitude_in_bc": "longitude BETWEEN -140.0 AND -114.0"
+})
 def bus_positions():
     """Source: TransLink GTFS-RT vehicle positions API"""
     return (
@@ -204,19 +212,51 @@ def bus_positions():
         "sla_minutes": "15",
         "owner":       "etienne.wang@slalom.com"
     },
-    partition_by=["_ingest_date"],
-    liquid_cluster_by=["vehicle_id", "_ingest_date"]
+    # Liquid Clustering REPLACES partitioning - never pass both.
+    cluster_by=["vehicle_id", "_ingest_date"]
 )
-@dp.expect("vehicle_id is not null",              "critical")
-@dp.expect("timestamp is not null",               "critical")
-@dp.expect("battery >= 0",                        "warn")
-@dp.expect("ingest_delay_seconds is not null",    "warn")
+@dp.expect_all_or_fail({
+    "vehicle_id_not_null": "vehicle_id IS NOT NULL",
+    "timestamp_not_null":  "timestamp IS NOT NULL"
+})
+@dp.expect_all({
+    "battery_non_negative":    "battery >= 0",
+    "ingest_delay_not_null":   "ingest_delay_seconds IS NOT NULL"
+})
 def bus_sensor_readings():
     """Depends on: bus_positions"""
     return transform_bus_positions(
         dp.read_stream("bus_positions")
     )
 ```
+
+---
+
+### Expectation decorators — the only correct forms
+
+| Decorator | On violation | Use for |
+|---|---|---|
+| `@dp.expect(name, cond)` | Warn. Row kept, metric logged. | Range and plausibility checks |
+| `@dp.expect_or_drop(name, cond)` | Row dropped before write. | Rows unusable downstream |
+| `@dp.expect_or_fail(name, cond)` | Pipeline fails atomically. | Violations that must never land |
+| `@dp.expect_all({name: cond, ...})` | Warn, many at once. | Preferred over stacking `expect` |
+| `@dp.expect_all_or_drop({...})` | Drop, many at once. | |
+| `@dp.expect_all_or_fail({...})` | Fail, many at once. | |
+
+`name` is a label unique within the dataset and shows up in pipeline metrics.
+`cond` is a SQL boolean expression — no Python UDFs, no subqueries, no external
+calls. Prefer the `expect_all*` forms: one decorator per severity beats four
+stacked single decorators.
+
+WRONG: `@dp.expect("vehicle_id is not null", "critical")`
+        ← "critical" is not a SQL condition, and severity is not an argument
+RIGHT: `@dp.expect_or_fail("vehicle_id_not_null", "vehicle_id IS NOT NULL")`
+
+### Clustering
+
+Use `cluster_by=[...]` (Liquid Clustering). It REPLACES partitioning — never
+pass `partition_cols` and `cluster_by` on the same table. `liquid_cluster_by`
+is not a parameter and does not exist.
 
 ---
 
@@ -556,7 +596,7 @@ result_df.write.save(target)
 Never generate a file without:
 - Asset Declaration Block
 - Docstring with column lineage on every transform function
-- @dp.expect checks on every @dp.table
+- @dp.expect* checks on every @dp.table
 - Lineage registry entry for every new table
 
 ---
@@ -628,7 +668,7 @@ claude
 # Review existing code
 > "Review pipelines/silver/bus_sensor_readings.py
    against CLAUDE.md standards.
-   Check: Asset Block, @dp.expect, column lineage,
+   Check: Asset Block, @dp.expect*, column lineage,
    UC naming, anti-patterns."
 
 # After every session

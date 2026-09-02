@@ -12,7 +12,7 @@
 #   TODO (Lab 6) — document each column as {column} → {type} or DERIVED: {formula}
 #
 # Data Quality Rules:
-#   TODO (Lab 6) — CRITICAL rules stop the pipeline, WARN rules log and continue
+#   TODO (Lab 6) — FAIL: @dp.expect_or_fail, DROP: @dp.expect_or_drop, WARN: @dp.expect
 #
 # PII columns:  TBD
 # SLA:          Within 60 minutes of upstream load
