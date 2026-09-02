@@ -11,6 +11,13 @@ resources:
       continuous: false
       root_path: "../src/gtfs_bronze"
 
+      # Passed to the transformation code as spark.conf, so the landing path follows
+      # the target's catalog/schema instead of being hardcoded in Python.
+      # Must stay in sync with the volume in resources/gtfs_landing.volume.yml -
+      # ${resources.volumes...} references are not interpolated here.
+      configuration:
+        gtfs.volume_root: /Volumes/${var.catalog}/${var.gtfs_bronze_schema}/landing/gtfs_static
+
       libraries:
         - glob:
             include: ../src/gtfs_bronze/transformations/**

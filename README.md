@@ -45,17 +45,17 @@ with this project. It's also possible to interact with it directly using the CLI
     (Note that "dev" is the default target, so the `--target` parameter
     is optional here.)
 
-    This deploys everything that's defined for this project.
-    For example, the default template would deploy a pipeline called
-    `[dev yourname] vancouver_transit_etl` to your workspace.
-    You can find that resource by opening your workpace and clicking on **Jobs & Pipelines**.
+    This deploys everything that's defined for this project: the
+    `[dev yourname] gtfs_ingest` job, the `[dev yourname] gtfs_bronze_ingest`
+    pipeline, and the `landing` volume.
+    You can find those resources by opening your workpace and clicking on **Jobs & Pipelines**.
 
 3. Similarly, to deploy a production copy, type:
    ```
    $ databricks bundle deploy --target prod
    ```
-   Note the default template has a includes a job that runs the pipeline every day
-   (defined in resources/sample_job.job.yml). The schedule
+   Note that `gtfs_ingest` (defined in resources/gtfs_ingest.job.yml) runs the
+   pipeline every day at 06:00 America/Vancouver. The schedule
    is paused when deploying in development mode (see
    https://docs.databricks.com/dev-tools/bundles/deployment-modes.html).
 

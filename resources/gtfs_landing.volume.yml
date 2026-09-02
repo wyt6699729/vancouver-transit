@@ -1,0 +1,14 @@
+# Landing volume for the raw GTFS Static files.
+#
+# The gtfs_ingest job's download task writes the unzipped feed here and the
+# gtfs_bronze_ingest pipeline reads it with Auto Loader. The catalog and the
+# bronze schema must already exist in the workspace - only the volume is
+# created by this bundle.
+
+resources:
+  volumes:
+    gtfs_landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.gtfs_bronze_schema}
+      name: landing
+      volume_type: MANAGED

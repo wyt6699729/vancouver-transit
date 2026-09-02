@@ -35,8 +35,8 @@ Auto Loader expects:
 python -c "from vancouver_transit.gtfs_download import download_gtfs_static; \
            download_gtfs_static(volume_root='/tmp/stage/gtfs_static')"
 databricks fs cp -r --overwrite /tmp/stage/gtfs_static \
-    dbfs:/Volumes/gtfs/bronze/landing/gtfs_static --profile slalom-dev
-databricks bundle run gtfs_bronze_ingest -t dev --profile slalom-dev
+    dbfs:/Volumes/gtfs/bronze/landing/gtfs_static --profile <your-profile>
+databricks bundle run gtfs_bronze_ingest -t dev --profile <your-profile>
 ```
 
 ## Notes
@@ -55,10 +55,15 @@ databricks bundle run gtfs_bronze_ingest -t dev --profile slalom-dev
   ship with a UTF-8 BOM; the downloader strips it so the first column name parses cleanly.
 - **New GTFS files** land in the volume automatically but need adding to `GTFS_ENTITIES`
   in `transformations/bronze_gtfs_static.py` before they become tables.
+- **The landing path is not hardcoded.** `VOLUME_ROOT` comes from the pipeline's
+  `configuration.gtfs.volume_root`, set in `resources/gtfs_bronze_ingest.pipeline.yml`
+  from `${var.catalog}` / `${var.gtfs_bronze_schema}`. The `landing` volume itself is a
+  bundle resource (`resources/gtfs_landing.volume.yml`); the catalog and bronze schema
+  must already exist in the workspace.
 
 ## Run
 
 ```bash
-databricks bundle deploy -t dev --profile slalom-dev
-databricks bundle run gtfs_ingest -t dev --profile slalom-dev
+databricks bundle deploy -t dev --profile <your-profile>
+databricks bundle run gtfs_ingest -t dev --profile <your-profile>
 ```

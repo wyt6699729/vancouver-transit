@@ -13,7 +13,9 @@ strings and several TransLink columns would be corrupted by type inference -
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
-VOLUME_ROOT = "/Volumes/gtfs/bronze/landing/gtfs_static"
+# Set from the pipeline's `configuration` block in gtfs_bronze_ingest.pipeline.yml so
+# the landing path follows the target's catalog and schema.
+VOLUME_ROOT = spark.conf.get("gtfs.volume_root")
 
 # One streaming table per GTFS file published by TransLink. The first block is
 # the GTFS reference spec; the second is TransLink's own extensions.
